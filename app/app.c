@@ -6,7 +6,7 @@
 int main(int argc, char const *argv[])
 {
     char buffer[BUFFER_SIZE];
-    int fd = open("/dev/streamer0", O_RDONLY);
+    int fd = open("/dev/myStreamer", O_RDONLY);
     size_t written = 0;
 
     // Init buffer
