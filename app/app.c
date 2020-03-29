@@ -1,5 +1,7 @@
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 #define BUFFER_SIZE 1
 
@@ -13,7 +15,7 @@ int main(int argc, char const *argv[])
     memset(buffer, 0x0, BUFFER_SIZE);
 
     // Double check that the driver exists...
-    if (fd == NULL) {
+    if (fd < 0) {
         printf("Failed to open the device.\n");
         return -1;
     }
@@ -22,7 +24,7 @@ int main(int argc, char const *argv[])
     while (1 == 1) {
         written = read(fd, buffer, BUFFER_SIZE);
 
-        for (unsigned int i = 0; i < written, i++)
+        for (unsigned int i = 0; i < written; i++)
         {
             printf("0x%02X\n", buffer[i]);
         }
