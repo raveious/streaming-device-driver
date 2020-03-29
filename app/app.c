@@ -21,12 +21,12 @@ void signal_handler(int sig) {
 int main(int argc, char const *argv[])
 {
     char buffer[BUFFER_SIZE];
-    size_t written = 0;
+    ssize_t written = 0;
     struct timespec ts;
     int foo = 0;
 
     ts.tv_sec = 0;
-    ts.tv_nsec = 20000;
+    ts.tv_nsec = 2000;
 
     signal(SIGINT, signal_handler);
 
@@ -45,9 +45,16 @@ int main(int argc, char const *argv[])
     while (!terminated) {
         written = read(fd, buffer, BUFFER_SIZE);
 
-        for (unsigned int i = 0; i < written; i++)
-        {
-            printf("0x%02X\n", buffer[i]);
+        printf("Recieved %d bytes from device.\n", written);
+
+        if (written > 0) {
+            for (unsigned int i = 0; i < written; i++)
+            {
+                printf("0x%02X\n", buffer[i]);
+            }
+        } else {
+            printf("Read failed.\n");
+            break;
         }
         
         nanosleep(&ts, NULL);
