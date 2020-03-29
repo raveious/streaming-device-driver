@@ -7,11 +7,14 @@
 #include <linux/kthread.h>
 #include <linux/random.h>
 #include <linux/delay.h>
+#include <linux/slab.h>
 
 #define DEVICE_NAME "myStreamer"
 #define CLASS_NAME  "myStreamer"
 
 #define SUCCESS 0
+
+#define DEVICE_BUFFER_SIZE 512
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Ian Wakely");
@@ -27,6 +30,9 @@ static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
 static int dev_major_number;
 static struct class* dev_class = NULL;
 static struct device* dev_device = NULL;
+
+static char* device_buffer = NULL;
+static int device_buffer_index = 0;
 
 static struct file_operations fops = {
 	.read = device_read,
@@ -58,6 +64,9 @@ static int device_sim_thread(void* data) {
         }
 
         printk(KERN_INFO "%s: Generated random data for simulate data read in from a device.\n", DEVICE_NAME);
+
+        // Fill that with random data.
+        get_random_bytes(device_buffer, DEVICE_BUFFER_SIZE);
     }
 
     printk(KERN_INFO "%s: Device simulation thread has been stopped.\n", DEVICE_NAME);
@@ -94,6 +103,12 @@ int init_module(void) {
 
     init_completion(&read_buffered_data);
 
+    device_buffer = (char*)kmalloc(DEVICE_BUFFER_SIZE, GFP_KERNEL);
+    if (device_buffer == NULL) {
+        printk(KERN_ALERT "%s: Failed to create device buffer.\n", DEVICE_NAME);
+        return PTR_ERR(device_buffer);
+    }
+
     device_sim_struct = kthread_run(device_sim_thread, NULL, "dev_sim_thread");
 
     // Something bad happened when making the thread...
@@ -114,6 +129,8 @@ void cleanup_module(void) {
 
     // Stop the thread
     kthread_stop(device_sim_struct);
+
+    kfree(device_buffer);
 
     // Break everything down on exit
     device_destroy(dev_class, MKDEV(dev_major_number, 0));
@@ -136,12 +153,31 @@ static int device_release(struct inode* inode, struct file* fd) {
 }
 
 static ssize_t device_read(struct file* fd, char* buffer, size_t buff_size, loff_t* offset) {
+    ssize_t copied_data;
+    long copy_status;
+
     printk(KERN_INFO "%s: App is reading data.\n", DEVICE_NAME);
 
-    // Report back saying that the buffered data has been read by someone.
-    complete(&read_buffered_data);
+    copied_data = (buff_size > (DEVICE_BUFFER_SIZE - device_buffer_index) ? (DEVICE_BUFFER_SIZE - device_buffer_index) : buff_size );
 
-    return 0;
+    printk(KERN_INFO "%s: Copying %zd bytes to userspace.\n", DEVICE_NAME, copied_data);
+
+    copy_status = copy_to_user(&device_buffer[device_buffer_index], buffer, copied_data);
+
+    if (copy_status != 0) {
+        printk(KERN_ALERT "%s: Failed to copy data to userspace (%ld).\n", DEVICE_NAME, copy_status);
+        return -EFAULT;
+    }
+
+    device_buffer_index += copied_data;
+
+    // Report back saying that the buffered data has been read by someone.
+    if (device_buffer_index > DEVICE_BUFFER_SIZE) {
+        device_buffer_index = 0;
+        complete(&read_buffered_data);
+    }
+
+    return copied_data;
 }
 
 static ssize_t device_write(struct file* fd, const char* buffer, size_t buff_size, loff_t* offset) {
