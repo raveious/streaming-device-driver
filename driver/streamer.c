@@ -51,6 +51,10 @@ static int device_sim_thread(void* data) {
         // If there was a timeout on the wait, just go back to waiting.
         if (timeout == 0) {
             continue;
+        
+        // Break out now if we need to.
+        } else if (kthread_should_stop()) {
+            break;
         }
 
         printk(KERN_INFO "%s: Generated random data for simulate data read in from a device.\n", DEVICE_NAME);
