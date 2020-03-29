@@ -49,8 +49,6 @@ int main(int argc, char const *argv[])
         {
             printf("0x%02X\n", buffer[i]);
         }
-
-        printf("Foo: %d\n", foo++);
         
         nanosleep(&ts, NULL);
     }
