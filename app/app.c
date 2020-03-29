@@ -1,15 +1,36 @@
+#define _POSIX_C_SOURCE 199309L
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <signal.h>
+#include <time.h>
 
 #define BUFFER_SIZE 1
+
+volatile bool terminated = false;
+
+void signal_handler(int sig) {
+    printf("Exiting program (%d)...\n", sig);
+
+    terminated = true;
+}
 
 int main(int argc, char const *argv[])
 {
     char buffer[BUFFER_SIZE];
-    int fd = open("/dev/myStreamer", O_RDONLY);
     size_t written = 0;
+    struct timespec ts;
+    int foo = 0;
+
+    ts.tv_sec = 0;
+    ts.tv_nsec = 20000;
+
+    signal(SIGINT, signal_handler);
+
+    int fd = open("/dev/myStreamer", O_RDONLY);
 
     // Init buffer
     memset(buffer, 0x0, BUFFER_SIZE);
@@ -21,13 +42,17 @@ int main(int argc, char const *argv[])
     }
 
     // Read from module into userspace
-    while (1 == 1) {
+    while (!terminated) {
         written = read(fd, buffer, BUFFER_SIZE);
 
         for (unsigned int i = 0; i < written; i++)
         {
             printf("0x%02X\n", buffer[i]);
         }
+
+        printf("Foo: %d\n", foo++);
+        
+        nanosleep(&ts, NULL);
     }
 
     close(fd);
