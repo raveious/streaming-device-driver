@@ -8,7 +8,7 @@
 #include <signal.h>
 #include <time.h>
 
-#define BUFFER_SIZE 1
+#define BUFFER_SIZE 2
 
 volatile bool terminated = false;
 
@@ -25,8 +25,8 @@ int main(int argc, char const *argv[])
     struct timespec ts;
     int foo = 0;
 
-    ts.tv_sec = 0;
-    ts.tv_nsec = 2000;
+    ts.tv_sec = 2;
+    ts.tv_nsec = 0;
 
     signal(SIGINT, signal_handler);
 
@@ -47,14 +47,13 @@ int main(int argc, char const *argv[])
 
         printf("Recieved %d bytes from device.\n", written);
 
-        if (written > 0) {
-            for (unsigned int i = 0; i < written; i++)
-            {
-                printf("0x%02X\n", buffer[i]);
-            }
-        } else {
+        if (written < 0) {
             printf("Read failed.\n");
             break;
+        }
+
+        for (unsigned int i = 0; i < written; i++) {
+            printf("0x%02X\n", buffer[i]);
         }
         
         nanosleep(&ts, NULL);

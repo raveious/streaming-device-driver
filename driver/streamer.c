@@ -14,7 +14,7 @@
 
 #define SUCCESS 0
 
-#define DEVICE_BUFFER_SIZE 512
+#define DEVICE_BUFFER_SIZE 64
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Ian Wakely");
@@ -63,7 +63,7 @@ static int device_sim_thread(void* data) {
             break;
         }
 
-        printk(KERN_INFO "%s: Generated random data for simulate data read in from a device.\n", DEVICE_NAME);
+        printk(KERN_INFO "%s: Generated random data to simulate data being read in from a device.\n", DEVICE_NAME);
 
         // Fill that with random data.
         get_random_bytes(device_buffer, DEVICE_BUFFER_SIZE);
@@ -157,12 +157,14 @@ static ssize_t device_read(struct file* fd, char* buffer, size_t buff_size, loff
     long copy_status;
 
     printk(KERN_INFO "%s: App is reading data.\n", DEVICE_NAME);
+    printk(KERN_INFO "%s: device_buffer_index: %d.\n", DEVICE_NAME, device_buffer_index);
+    printk(KERN_INFO "%s: buff_size: %ld.\n", DEVICE_NAME, buff_size);
 
     copied_data = (buff_size > (DEVICE_BUFFER_SIZE - device_buffer_index) ? (DEVICE_BUFFER_SIZE - device_buffer_index) : buff_size );
 
     printk(KERN_INFO "%s: Copying %zd bytes to userspace.\n", DEVICE_NAME, copied_data);
 
-    copy_status = copy_to_user(&device_buffer[device_buffer_index], buffer, copied_data);
+    copy_status = copy_to_user(buffer, &device_buffer[device_buffer_index], copied_data);
 
     if (copy_status != 0) {
         printk(KERN_ALERT "%s: Failed to copy data to userspace (%ld).\n", DEVICE_NAME, copy_status);
@@ -172,7 +174,7 @@ static ssize_t device_read(struct file* fd, char* buffer, size_t buff_size, loff
     device_buffer_index += copied_data;
 
     // Report back saying that the buffered data has been read by someone.
-    if (device_buffer_index > DEVICE_BUFFER_SIZE) {
+    if (device_buffer_index >= DEVICE_BUFFER_SIZE) {
         device_buffer_index = 0;
         complete(&read_buffered_data);
     }
