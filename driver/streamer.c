@@ -1,4 +1,3 @@
-
 #include <linux/kernel.h>
 #include <linux/device.h>
 #include <linux/module.h>
@@ -54,14 +53,14 @@ static int device_sim_thread(void* data) {
         // wait for the buffer to be emptied
         timeout = wait_for_completion_timeout(&read_buffered_data, msecs_to_jiffies(500));
 
-        // If there was a timeout on the wait, just go back to waiting.
-        if (timeout == 0) {
-            continue;
-        
-        // Break out now if we need to.
-        } else if (kthread_should_stop()) {
+	// Break out now if we need to.
+        if (kthread_should_stop()) {
             break;
         }
+        // If there was a timeout on the wait, just go back to waiting.
+    	else if (timeout == 0) {
+            continue;
+	}
 
         printk(KERN_INFO "%s: Generated random data to simulate data being read in from a device.\n", DEVICE_NAME);
 
