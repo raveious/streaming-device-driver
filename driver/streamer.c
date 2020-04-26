@@ -53,12 +53,8 @@ static int device_sim_thread(void* data) {
         // wait for the buffer to be emptied
         timeout = wait_for_completion_timeout(&read_buffered_data, msecs_to_jiffies(500));
 
-	// Break out now if we need to.
-        if (kthread_should_stop()) {
-            break;
-        }
-        // If there was a timeout on the wait, just go back to waiting.
-    	else if (timeout == 0) {
+	// If there was a timeout on the wait, just go back to waiting.
+	if (timeout == 0) {
             continue;
 	}
 
