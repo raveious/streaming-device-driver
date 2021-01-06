@@ -34,6 +34,7 @@ static char* device_buffer = NULL;
 static int device_buffer_index = 0;
 
 static struct file_operations fops = {
+	.owner = THIS_MODULE,
 	.read = device_read,
 	.write = device_write,
 	.open = device_open,
@@ -136,14 +137,10 @@ void cleanup_module(void) {
 
 
 static int device_open(struct inode* inode, struct file* fd) {
-    try_module_get(THIS_MODULE);
-
     return SUCCESS;
 }
 
 static int device_release(struct inode* inode, struct file* fd) {
-    module_put(THIS_MODULE);
-
     return SUCCESS;
 }
 
